@@ -1,0 +1,66 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Define the objective function
+def objective_function(x1, x2):
+    return np.sin(2*x1 - 0.5) + 3 * np.cos(x2) + 0.5*x1
+
+# Define PSO parameters
+num_particles = 50
+num_dimensions = 2
+num_iterations = 500
+c1 = 2
+c2 = 2
+v_max = [-0.1, 1]
+x_min = [-2, -2]
+x_max = [3, 1]
+num_runs = 5  # Number of runs with different random seeds
+
+# Function to run PSO for one iteration
+def run_pso(seed):
+    np.random.seed(seed)
+    positions = np.random.uniform(low=x_min, high=x_max, size=(num_particles, num_dimensions))
+    velocities = np.random.uniform(low=[-v_max[1], -v_max[1]], high=v_max, size=(num_particles, num_dimensions))
+    p_best = np.copy(positions)
+    p_best_values = np.array([objective_function(x[0], x[1]) for x in positions])
+    g_best_index = np.argmax(p_best_values)
+    g_best = np.copy(positions[g_best_index])
+    history = [np.copy(positions)]
+
+    for _ in range(num_iterations):
+        for i in range(num_particles):
+            fitness = objective_function(positions[i][0], positions[i][1])
+            if fitness > p_best_values[i]:
+                p_best[i] = np.copy(positions[i])
+                p_best_values[i] = fitness
+                if fitness > objective_function(g_best[0], g_best[1]):
+                    g_best = np.copy(positions[i])
+        
+        for i in range(num_particles):
+            r1 = np.random.rand()
+            r2 = np.random.rand()
+            velocities[i] = velocities[i] + c1 * r1 * (p_best[i] - positions[i]) + c2 * r2 * (g_best - positions[i])
+            velocities[i] = np.clip(velocities[i], -v_max, v_max)
+            positions[i] = positions[i] + velocities[i]
+            positions[i] = np.clip(positions[i], x_min, x_max)
+        
+        history.append(np.copy(positions))
+
+    return np.array(history)
+
+# Run PSO for multiple runs with different random seeds
+all_history = []
+for i in range(num_runs):
+    history = run_pso(seed=i)
+    all_history.append(history)
+
+# Plot movement of particles for each run
+plt.figure(figsize=(10, 6))
+for i in range(num_runs):
+    for j in range(num_particles):
+        plt.plot(all_history[i][:, j, 0], all_history[i][:, j, 1], 'o-', alpha=0.5)
+plt.xlabel('x1')
+plt.ylabel('x2')
+plt.title('Particle Movement')
+plt.grid(True)
+plt.show()
